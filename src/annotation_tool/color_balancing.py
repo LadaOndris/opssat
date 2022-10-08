@@ -25,11 +25,11 @@ def simplest_cb(img, percent=1):
 
 
 if __name__ == '__main__':
-    cv2.namedWindow("before", cv2.WINDOW_NORMAL)
+    #cv2.namedWindow("before", cv2.WINDOW_NORMAL)
     cv2.namedWindow("after", cv2.WINDOW_NORMAL)
-    img = cv2.imread('datasets/opssat/raw/006.png')
+    img = cv2.imread('datasets/opssat/raw/024.png')
     out = simplest_cb(img, 1)
-    cv2.imshow('before', img)
+    #cv2.imshow('before', img)
     cv2.imshow('after', out)
 
     key = cv2.waitKey(0)

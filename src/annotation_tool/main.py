@@ -162,7 +162,7 @@ class UI(Frame):
 
     def _get_annotation_color(self, annotation: int) -> str:
         if self._is_inactive_annotation(annotation):
-            return "#ab80cf"
+            return "#c29c34"
         return "#342469"
 
     def _is_inactive_annotation(self, annotation: int) -> bool:
@@ -215,7 +215,7 @@ def main():
     root = Tk()
 
     minitile_size = 40
-    image_path = "datasets/opssat/raw/006.png"
+    image_path = "datasets/opssat/raw/024.png"
     img = prepare_balanced_image(image_path)
 
     minitiles_shape = (pixel_to_index(img.size[0], minitile_size) + 1,

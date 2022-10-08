@@ -5,9 +5,9 @@ import tensorflow as tf
 from sklearn.metrics import cohen_kappa_score
 from tensorflow import keras
 
-import src.logging as logging
-from efficientnet_lite import EfficientNetLiteB0
+import src.logging as logs_utils
 from src.dataset.opssat import get_images_from_path, TrainDataset
+from src.efficientnet_lite import EfficientNetLiteB0
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
@@ -32,8 +32,8 @@ class Trainer:
         self.model.load_weights(weights_path)
 
     def train(self, dataset_iterator):
-        log_dir = logging.make_log_dir('logs')
-        checkpoint_path = logging.compose_ckpt_path(log_dir)
+        log_dir = logs_utils.make_log_dir('logs')
+        checkpoint_path = logs_utils.compose_ckpt_path(log_dir)
         monitor_loss = 'val_loss'
         callbacks = [
             tf.keras.callbacks.TensorBoard(log_dir=log_dir, update_freq='epoch'),
