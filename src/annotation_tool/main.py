@@ -1,8 +1,10 @@
 from tkinter import ALL, BOTH, Canvas, Frame, NW, Text, Tk
 
+import cv2
 from PIL import Image, ImageTk
 
-from src.annotation_tool.core import index_to_pixel, pixel_to_index, StateStorage
+from src.annotation_tool.color_balancing import simplest_cb
+from src.annotation_tool.state_storage import index_to_pixel, pixel_to_index, StateStorage
 
 
 class UI(Frame):
@@ -129,7 +131,6 @@ class UI(Frame):
 
             drag_canvas(e.keycode)
 
-
         return on_key_press
 
     def _is_existing_type(self, type_index: int) -> bool:
@@ -196,12 +197,27 @@ class UI(Frame):
         text_element.insert(1.0, text)
 
 
+def prepare_balanced_image(image_path: str):
+    img = cv2.imread(image_path)
+
+    # Balance color channels
+    balanced_img = simplest_cb(img, 1)
+
+    # Rearrang the color channel
+    b, g, r = cv2.split(balanced_img)
+    rgb_img = cv2.merge((r, g, b))
+
+    prepared_img = Image.fromarray(rgb_img)
+    return prepared_img
+
+
 def main():
     root = Tk()
 
     minitile_size = 40
-    image_path = "datasets/opssat/raw/001.png"
-    img = Image.open(image_path)
+    image_path = "datasets/opssat/raw/006.png"
+    img = prepare_balanced_image(image_path)
+
     minitiles_shape = (pixel_to_index(img.size[0], minitile_size) + 1,
                        pixel_to_index(img.size[1], minitile_size) + 1)
     storage = StateStorage(image_path, minitiles_shape)
