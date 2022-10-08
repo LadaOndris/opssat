@@ -7,7 +7,7 @@ from tensorflow import keras
 
 import src.logging as logging
 from efficientnet_lite import EfficientNetLiteB0
-from src.dataset.opssat import get_images_from_path
+from src.dataset.opssat import get_images_from_path, TrainDataset
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
@@ -31,7 +31,7 @@ class Trainer:
                                         classifier_activation=None)
         self.model.load_weights(weights_path)
 
-    def train(self, x_train, y_train):
+    def train(self, dataset_iterator):
         log_dir = logging.make_log_dir('logs')
         checkpoint_path = logging.compose_ckpt_path(log_dir)
         monitor_loss = 'val_loss'
@@ -43,7 +43,8 @@ class Trainer:
             tf.keras.callbacks.ReduceLROnPlateau()
         ]
 
-        history = self.model.fit(x_train, y_train, epochs=55, verbose=1, batch_size=8, callbacks=callbacks)
+        history = self.model.fit(dataset_iterator, epochs=100, steps_per_epoch=1000,
+                                 verbose=1, batch_size=16, callbacks=callbacks)
 
     def evaluate(self):
         x, y = get_images_from_path('datasets/opssat/test/', self.input_shape)
@@ -66,8 +67,9 @@ class Trainer:
 if __name__ == "__main__":
     input_shape = (200, 200, 3)
     trainer = Trainer(input_shape)
+    dataset = TrainDataset('datasets/opssat/raw', num_classes=8, minitile_size=40, batch_size=32)
 
     trainer.create_model()
     x, y = get_images_from_path('datasets/opssat/test/', input_shape)
-    trainer.train(x, y)
+    trainer.train(dataset.iterator)
     trainer.evaluate()
