@@ -1,15 +1,11 @@
-import os
-
 import numpy as np
 import tensorflow as tf
 from sklearn.metrics import cohen_kappa_score
 from tensorflow import keras
 
 import src.logging as logs_utils
-from src.dataset.opssat import get_images_from_path, TrainDataset
+from src.dataset.opssat import get_images_from_path
 from src.efficientnet_lite import EfficientNetLiteB0
-
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 class Trainer:
@@ -32,7 +28,7 @@ class Trainer:
         self.model.load_weights(weights_path)
 
     def train(self, dataset_iterator, class_weights, batch_size: int, epochs: int, steps_per_epoch: int,
-              verbose: int):
+              verbose: int, validation_dataset_path: str):
         log_dir = logs_utils.make_log_dir('logs')
         checkpoint_path = logs_utils.compose_ckpt_path(log_dir)
         monitor_loss = 'val_loss'
@@ -44,13 +40,14 @@ class Trainer:
             tf.keras.callbacks.ReduceLROnPlateau()
         ]
 
-        validation_data = get_images_from_path('datasets/opssat/val/', self.input_shape)
+        validation_data = get_images_from_path(validation_dataset_path, self.input_shape)
         history = self.model.fit(dataset_iterator, epochs=epochs, steps_per_epoch=steps_per_epoch,
-                                 verbose=verbose, batch_size=batch_size, callbacks=callbacks, class_weight=class_weights,
+                                 verbose=verbose, batch_size=batch_size, callbacks=callbacks,
+                                 class_weight=class_weights,
                                  validation_data=validation_data)
 
-    def evaluate(self):
-        x, y = get_images_from_path('datasets/opssat/test/', self.input_shape)
+    def evaluate(self, test_dataset_path: str):
+        x, y = get_images_from_path(test_dataset_path, self.input_shape)
         self.evaluate_copen_kappa(x, y)
 
     def evaluate_copen_kappa(self, x, y):
@@ -65,13 +62,3 @@ class Trainer:
         # Keras model score
         score_keras = 1 - cohen_kappa_score(y.numpy(), predictions)
         print("Score:", score_keras)
-
-
-if __name__ == "__main__":
-    input_shape = (200, 200, 3)
-    trainer = Trainer(input_shape)
-    dataset = TrainDataset('datasets/opssat/raw', num_classes=8, minitile_size=40, batch_size=32)
-
-    trainer.create_model()
-    trainer.train(dataset.iterator, dataset.class_weights)
-    trainer.evaluate()
