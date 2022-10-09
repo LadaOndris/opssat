@@ -31,7 +31,8 @@ class Trainer:
                                         classifier_activation=None)
         self.model.load_weights(weights_path)
 
-    def train(self, dataset_iterator):
+    def train(self, dataset_iterator, class_weights, batch_size: int, epochs: int, steps_per_epoch: int,
+              verbose: int):
         log_dir = logs_utils.make_log_dir('logs')
         checkpoint_path = logs_utils.compose_ckpt_path(log_dir)
         monitor_loss = 'val_loss'
@@ -43,8 +44,10 @@ class Trainer:
             tf.keras.callbacks.ReduceLROnPlateau()
         ]
 
-        history = self.model.fit(dataset_iterator, epochs=100, steps_per_epoch=1000,
-                                 verbose=1, batch_size=16, callbacks=callbacks)
+        validation_data = get_images_from_path('datasets/opssat/val/', self.input_shape)
+        history = self.model.fit(dataset_iterator, epochs=epochs, steps_per_epoch=steps_per_epoch,
+                                 verbose=verbose, batch_size=batch_size, callbacks=callbacks, class_weight=class_weights,
+                                 validation_data=validation_data)
 
     def evaluate(self):
         x, y = get_images_from_path('datasets/opssat/test/', self.input_shape)
@@ -70,6 +73,5 @@ if __name__ == "__main__":
     dataset = TrainDataset('datasets/opssat/raw', num_classes=8, minitile_size=40, batch_size=32)
 
     trainer.create_model()
-    x, y = get_images_from_path('datasets/opssat/test/', input_shape)
-    trainer.train(dataset.iterator)
+    trainer.train(dataset.iterator, dataset.class_weights)
     trainer.evaluate()
