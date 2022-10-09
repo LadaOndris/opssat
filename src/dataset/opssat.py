@@ -40,7 +40,7 @@ class TrainDataset:
         self.image_file_paths = tf.convert_to_tensor([key for key in self.annotations.keys()])
         self.image_annotations = tf.convert_to_tensor([value for value in self.annotations.values()])
         self._check_all_classes_are_present()
-        self.per_class_annotations = self._separate_annotations_based_on_label()
+        self.class_weights = self._compute_class_weights()
 
         self.iterator = self._build_iterator()
 
@@ -94,66 +94,33 @@ class TrainDataset:
             if not class_exists:
                 raise RuntimeError(f"Class {class_idx} is not present in training data.")
 
-    def _separate_annotations_based_on_label(self):
-        # [image][class][indices]
-        separated_annotations = []
-        # For every image
-        for i in range(tf.shape(self.image_annotations)[0]):
-            per_class_annotations = []
-            # Check every classes and append indices to array
-            for class_idx in range(self.num_classes):
-                class_annotations = tf.where(self.image_annotations[i] == class_idx)
-                per_class_annotations.append(class_annotations)
-            separated_annotations.append(per_class_annotations)
-        return separated_annotations
+    def _compute_class_weights(self):
+        class_counts = np.empty(shape=(self.num_classes,), dtype=float)
+        for class_idx in range(self.num_classes):
+            class_mask = tf.cast(self.image_annotations == class_idx, dtype=tf.int32)
+            class_count = tf.reduce_sum(class_mask)
+            class_counts[class_idx] = class_count
+
+        normalized_counts = np.max(class_counts) / class_counts
+        class_weights = {i: normalized_counts[i] for i in range(normalized_counts.shape[0])}
+        return class_weights
 
     def _build_iterator(self):
         """
         Prepares tf.data.Dataset.
         """
-        datasets_for_each_class = []
-
-        for class_idx in range(self.num_classes):
-            dataset = tf.data.Dataset.from_tensors(self.image_file_paths)
-            # dataset = dataset.map(self._get_filter_files_with_specific_class(class_idx))
-            dataset = dataset.repeat()
-            dataset = dataset.map(self._prepare_sample)
-            dataset = dataset.filter(self._get_filter_class_predicate(class_idx))
-            datasets_for_each_class.append(dataset)
-
-        # Combine datasets together to get evenly represented classes
-        choice_dataset = tf.data.Dataset.range(self.num_classes).repeat()
-        combined_dataset = tf.data.Dataset.choose_from_datasets(datasets_for_each_class, choice_dataset)
-        combined_dataset = combined_dataset.batch(self.batch_size)
-        combined_dataset = combined_dataset.shuffle(self.batch_size)
-
+        dataset = tf.data.Dataset.from_tensors(self.image_file_paths)
+        dataset = dataset.repeat()
+        dataset = dataset.map(self._prepare_sample)
+        dataset = dataset.batch(self.batch_size)
         # Perform image augmentation
-
-        return combined_dataset
-
-    def _get_filter_files_with_specific_class(self, class_idx: int):
-        def filter_with_specific_class(images_file_paths):
-            mask = tf.zeros([tf.shape(images_file_paths)[0]], dtype=tf.int32)
-
-            images_file_paths[]
-            # for each image
-            for i in range(len(self.per_class_annotations)):
-                # for the specific class
-                class_annotations = self.per_class_annotations[i][class_idx]
-                if tf.size(class_annotations) > 0:
-                    mask[i] = 1
-
-            return images_file_paths[mask]
-        return filter_with_specific_class
+        return dataset
 
     def _prepare_sample(self, img_file_paths):
         # Select random image
         num_files = tf.shape(img_file_paths)[0]
         random_number = tf.random.uniform(shape=[1], maxval=num_files, dtype=tf.int32)[0]
         image_annotation = self.image_annotations[random_number]
-
-        # Select random tile of the specific class
-        self.per_class_annotations[random_number]
 
         # Select random tile 200x200 pixels
         tile_size = 200
@@ -179,13 +146,6 @@ class TrainDataset:
         tile = image[tile_pixel_row:tile_pixel_row + tile_size, tile_pixel_col:tile_pixel_col + tile_size, :]
 
         return tile, label
-
-    def _get_filter_class_predicate(self, class_idx: int):
-
-        def filter_class_predicate(tile, label) -> bool:
-            return label == class_idx
-
-        return filter_class_predicate
 
     def _annotations_to_label(self, annotations):
         y, idx, count = tf.unique_with_counts(tf.reshape(annotations, [-1]))
