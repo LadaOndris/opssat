@@ -12,7 +12,7 @@ app = typer.Typer()
 def train(batch_size: int = 32, model_weights: str = None,
           epochs: int = 1000, steps_per_epoch: int = 100, verbose: int = 0,
           validation_dataset_path: str = 'datasets/opssat/val/',
-          test_dataset_path='datasets/opssat/test/', run_on_gpu: bool = True):
+          test_dataset_path='datasets/opssat/val/', run_on_gpu: bool = True):
     if not run_on_gpu:
         os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
