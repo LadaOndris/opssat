@@ -27,11 +27,13 @@ class TrainDataset:
     prepares data for training.
     """
 
-    def __init__(self, dataset_path: str, num_classes: int, minitile_size: int, batch_size: int):
+    def __init__(self, dataset_path: str, num_classes: int, minitile_size: int, batch_size: int,
+                 tile_size: int = 200, min_minitiles: int = 2, max_minitiles: int = 10, max_minitile_ration: int = 3):
         self.dataset_path = dataset_path
         self.num_classes = num_classes
         self.minitile_size = minitile_size
         self.batch_size = batch_size
+        self.tile_size = tile_size  # Size in pixels
 
         self.annotations = self._load_annotations()
         self._fill_unannotated_minitiles()
@@ -42,6 +44,8 @@ class TrainDataset:
         self._check_all_classes_are_present()
         self.class_weights = self._compute_class_weights()
 
+        self.allowed_tile_sizes = self._prepare_allowed_tilesizes(min_minitiles, max_minitiles,
+                                                                  max_allowed_ratio=max_minitile_ration)
         self.iterator = self._build_iterator()
 
     def _load_annotations(self):
@@ -122,16 +126,18 @@ class TrainDataset:
         random_number = tf.random.uniform(shape=[1], maxval=num_files, dtype=tf.int32)[0]
         image_annotation = self.image_annotations[random_number]
 
+        # Select random tile size
+        tile_size_idx = tf.random.uniform(shape=[1], maxval=tf.shape(self.allowed_tile_sizes)[0], dtype=tf.int32)[0]
+        num_minitiles = self.allowed_tile_sizes[tile_size_idx]
+
         # Select random tile 200x200 pixels
-        tile_size = 200
-        num_minitiles = int(tile_size // self.minitile_size)
         num_cols = tf.shape(image_annotation)[0]
         num_rows = tf.shape(image_annotation)[1]
-        random_col = tf.random.uniform(shape=[1], maxval=num_cols - num_minitiles, dtype=tf.int32)[0]
-        random_row = tf.random.uniform(shape=[1], maxval=num_rows - num_minitiles, dtype=tf.int32)[0]
+        random_col = tf.random.uniform(shape=[1], maxval=num_cols - num_minitiles[0], dtype=tf.int32)[0]
+        random_row = tf.random.uniform(shape=[1], maxval=num_rows - num_minitiles[1], dtype=tf.int32)[0]
 
-        subimage_annotations = image_annotation[random_row:random_row + num_minitiles,
-                               random_col:random_col + num_minitiles]
+        subimage_annotations = image_annotation[random_row:random_row + num_minitiles[1],
+                               random_col:random_col + num_minitiles[0]]
 
         # Create label of the majority of votes
         label = self._annotations_to_label(subimage_annotations)
@@ -141,11 +147,34 @@ class TrainDataset:
         image = tf.io.decode_png(image_raw, channels=3)
 
         # Extract tile
-        tile_pixel_row = random_row * self.minitile_size
-        tile_pixel_col = random_col * self.minitile_size
-        tile = image[tile_pixel_row:tile_pixel_row + tile_size, tile_pixel_col:tile_pixel_col + tile_size, :]
+        start_tile_pixel_row = random_row * self.minitile_size
+        start_tile_pixel_col = random_col * self.minitile_size
+        end_tile_pixel = num_minitiles * self.minitile_size
 
-        return tile, label
+        tile = image[start_tile_pixel_row:start_tile_pixel_row + end_tile_pixel[1],
+               start_tile_pixel_col:start_tile_pixel_col + end_tile_pixel[0], :]
+        resized_tile = tf.image.resize(tile, [self.tile_size, self.tile_size])
+        resized_tile = tf.cast(resized_tile, dtype=tf.int32)
+
+        return resized_tile, label
+
+    def _prepare_allowed_tilesizes(self, min_minitiles: int, max_minitiles: int,
+                                   max_allowed_ratio: int) -> tf.TensorArray:
+        # Prepare possible minitile sizes
+        # select 2x2 to 10x10 with aspecet ration max 3 (allowed 2x6, 3x9, but not 3x10)
+        assert (min_minitiles > 0)
+        assert (max_minitiles >= min_minitiles)
+
+        a = np.arange(min_minitiles, max_minitiles + 1)
+        x, y = np.meshgrid(a, a)
+        xy_matrix = np.stack([x, y], axis=-1)
+        xy = xy_matrix.reshape([-1, 2])
+
+        xy_ratio_mask_one = (xy[:, 0] / xy[:, 1]) <= max_allowed_ratio
+        xy_ratio_mask_two = (xy[:, 1] / xy[:, 0]) <= max_allowed_ratio
+
+        allowed_tilesizes = xy[xy_ratio_mask_one & xy_ratio_mask_two]
+        return tf.convert_to_tensor(allowed_tilesizes, dtype=tf.int32)
 
     def _annotations_to_label(self, annotations):
         y, idx, count = tf.unique_with_counts(tf.reshape(annotations, [-1]))
@@ -157,8 +186,15 @@ class TrainDataset:
 
 
 if __name__ == "__main__":
+    import matplotlib
+
+    matplotlib.use('TkAgg')
+    import matplotlib.pyplot as plt
+
     dataset = TrainDataset('datasets/opssat/raw', num_classes=8, minitile_size=40, batch_size=32)
-    for tile, annot in dataset.iterator:
-        print(tile)
-        print(annot)
-        pass
+    for tile_batch, annot_batch in dataset.iterator:
+        tile_batch_np = tile_batch.numpy()
+        for i in range(np.shape(tile_batch_np)[0]):
+            plt.imshow(tile_batch_np[i])
+            plt.show()
+            pass
