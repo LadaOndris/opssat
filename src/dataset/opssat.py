@@ -116,8 +116,8 @@ class TrainDataset:
         dataset = tf.data.Dataset.from_tensors(self.image_file_paths)
         dataset = dataset.repeat()
         dataset = dataset.map(self._prepare_sample)
+        dataset = dataset.map(self._augment_image)
         dataset = dataset.batch(self.batch_size)
-        # Perform image augmentation
         return dataset
 
     def _prepare_sample(self, img_file_paths):
@@ -157,6 +157,14 @@ class TrainDataset:
         resized_tile = tf.cast(resized_tile, dtype=tf.int32)
 
         return resized_tile, label
+
+    def _augment_image(self, tile, annot):
+        # tile = tile_annot_pair[0]
+        # annot = tile_annot_pair[1]
+
+        flipped = tf.image.random_flip_left_right(tile)
+        flipped_twice = tf.image.random_flip_up_down(flipped)
+        return flipped_twice, annot
 
     def _prepare_allowed_tilesizes(self, min_minitiles: int, max_minitiles: int,
                                    max_allowed_ratio: int) -> tf.TensorArray:
