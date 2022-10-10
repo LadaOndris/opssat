@@ -34,7 +34,8 @@ class Trainer:
         monitor_loss = 'val_loss'
         callbacks = [
             tf.keras.callbacks.TensorBoard(log_dir=log_dir, update_freq='epoch'),
-            tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, monitor=monitor_loss, save_weights_only=True),
+            tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, monitor=monitor_loss, save_weights_only=True,
+                                               save_best_only=True),
             tf.keras.callbacks.EarlyStopping(monitor=monitor_loss, patience=20, restore_best_weights=True),
             tf.keras.callbacks.TerminateOnNaN(),
             tf.keras.callbacks.ReduceLROnPlateau()
