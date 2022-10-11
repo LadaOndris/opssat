@@ -28,7 +28,7 @@ class Trainer:
         self.model.load_weights(weights_path)
 
     def train(self, dataset_iterator, class_weights, batch_size: int, epochs: int, steps_per_epoch: int,
-              verbose: int, validation_dataset_path: str):
+              verbose: int, validation_data):
         log_dir = logs_utils.make_log_dir('logs')
         checkpoint_path = logs_utils.compose_ckpt_path(log_dir)
         monitor_loss = 'val_loss'
@@ -41,7 +41,6 @@ class Trainer:
             tf.keras.callbacks.ReduceLROnPlateau()
         ]
 
-        validation_data = get_images_from_path(validation_dataset_path, self.input_shape)
         history = self.model.fit(dataset_iterator, epochs=epochs, steps_per_epoch=steps_per_epoch,
                                  verbose=verbose, batch_size=batch_size, callbacks=callbacks,
                                  class_weight=class_weights,

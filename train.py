@@ -3,7 +3,7 @@ import os
 import typer
 
 from src.dataset.aid import AID
-from src.dataset.opssat import TrainDataset
+from src.dataset.opssat import get_images_from_path, TrainDataset
 from src.train_test import Trainer
 
 app = typer.Typer()
@@ -25,8 +25,10 @@ def train(batch_size: int = 32, model_weights: str = None,
         trainer.load_model(model_weights)
     else:
         trainer.create_model()
+
+    validation_data = get_images_from_path(validation_dataset_path, input_shape)
     trainer.train(dataset.iterator, dataset.class_weights, batch_size=batch_size, epochs=epochs,
-                  steps_per_epoch=steps_per_epoch, verbose=verbose, validation_dataset_path=validation_dataset_path)
+                  steps_per_epoch=steps_per_epoch, verbose=verbose, validation_data=validation_data)
     trainer.evaluate(test_dataset_path=test_dataset_path)
 
 
@@ -48,7 +50,7 @@ def pretrain(batch_size: int = 32, model_weights: str = None,
     else:
         trainer.create_model()
     trainer.train(dataset.train_iterator, dataset.class_weights, batch_size=batch_size, epochs=epochs,
-                  steps_per_epoch=steps_per_epoch, verbose=verbose, validation_dataset_path=dataset.validation_iterator)
+                  steps_per_epoch=steps_per_epoch, verbose=verbose, validation_data=dataset.validation_iterator)
 
 
 if __name__ == "__main__":

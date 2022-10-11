@@ -26,7 +26,7 @@ class AID:
     def _build_iterator(self):
         dataset = tf.keras.utils.image_dataset_from_directory(
             self.dataset_path, batch_size=self.batch_size,
-            image_size=self.image_size, validation_split=self.validation_split)
+            image_size=self.image_size, validation_split=self.validation_split, subset="both")
         return dataset
 
     def _compute_class_weights(self) -> np.ndarray:
