@@ -10,9 +10,9 @@ from src.efficientnet_lite import EfficientNetLiteB0
 
 class Trainer:
 
-    def __init__(self, input_shape):
+    def __init__(self, input_shape, num_classes):
         self.model = None
-        self.num_classes = 8
+        self.num_classes = num_classes
         self.input_shape = input_shape  # input_shape is (height, width, number of channels) for images
 
     def create_model(self):

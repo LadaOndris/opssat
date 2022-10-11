@@ -18,7 +18,7 @@ def train(batch_size: int = 32, model_weights: str = None,
     if not run_on_gpu:
         os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-    trainer = Trainer(input_shape)
+    trainer = Trainer(input_shape, num_classes=8)
     dataset = TrainDataset('datasets/opssat/raw', num_classes=8, minitile_size=40, batch_size=batch_size)
 
     if model_weights:
@@ -41,7 +41,7 @@ def pretrain(batch_size: int = 32, model_weights: str = None,
     if not run_on_gpu:
         os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-    trainer = Trainer(input_shape)
+    trainer = Trainer(input_shape, num_classes=30)
     dataset = AID(dataset_path, batch_size=batch_size, image_size=input_shape[:2],
                   validation_split=validation_split)
 
