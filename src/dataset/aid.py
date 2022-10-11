@@ -25,7 +25,7 @@ class AID:
 
     def _build_iterator(self):
         dataset = tf.keras.utils.image_dataset_from_directory(
-            self.dataset_path, batch_size=self.batch_size,
+            self.dataset_path, batch_size=self.batch_size, seed=42,
             image_size=self.image_size, validation_split=self.validation_split, subset="both")
         return dataset
 
