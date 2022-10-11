@@ -116,34 +116,33 @@ class TrainDataset:
         dataset = tf.data.Dataset.from_tensors(self.image_file_paths)
         dataset = dataset.repeat()
         dataset = dataset.map(self._prepare_sample)
-        dataset = dataset.map(self._augment_image)
+        # dataset = dataset.map(self._augment_image)
         dataset = dataset.batch(self.batch_size)
         return dataset
 
     def _prepare_sample(self, img_file_paths):
         # Select random image
         num_files = tf.shape(img_file_paths)[0]
-        random_number = tf.random.uniform(shape=[1], maxval=num_files, dtype=tf.int32)[0]
-        image_annotation = self.image_annotations[random_number]
+        selected_image_idx = tf.random.uniform(shape=[1], maxval=num_files, dtype=tf.int32)[0]
+        selected_image_annotations = self.image_annotations[selected_image_idx]
 
         # Select random tile size
         tile_size_idx = tf.random.uniform(shape=[1], maxval=tf.shape(self.allowed_tile_sizes)[0], dtype=tf.int32)[0]
         num_minitiles = self.allowed_tile_sizes[tile_size_idx]
 
         # Select random tile 200x200 pixels
-        num_cols = tf.shape(image_annotation)[0]
-        num_rows = tf.shape(image_annotation)[1]
-        random_col = tf.random.uniform(shape=[1], maxval=num_cols - num_minitiles[0], dtype=tf.int32)[0]
+        num_rows = tf.shape(selected_image_annotations)[0]
+        num_cols = tf.shape(selected_image_annotations)[1]
         random_row = tf.random.uniform(shape=[1], maxval=num_rows - num_minitiles[1], dtype=tf.int32)[0]
+        random_col = tf.random.uniform(shape=[1], maxval=num_cols - num_minitiles[0], dtype=tf.int32)[0]
 
-        subimage_annotations = image_annotation[random_row:random_row + num_minitiles[1],
+        subimage_annotations = selected_image_annotations[random_row:random_row + num_minitiles[1],
                                random_col:random_col + num_minitiles[0]]
-
         # Create label of the majority of votes
         label = self._annotations_to_label(subimage_annotations)
 
         # Read image
-        image_raw = tf.io.read_file(img_file_paths[random_number])
+        image_raw = tf.io.read_file(img_file_paths[selected_image_idx])
         image = tf.io.decode_png(image_raw, channels=3)
 
         # Extract tile
@@ -151,17 +150,14 @@ class TrainDataset:
         start_tile_pixel_col = random_col * self.minitile_size
         end_tile_pixel = num_minitiles * self.minitile_size
 
-        tile = image[start_tile_pixel_row:start_tile_pixel_row + end_tile_pixel[1],
-               start_tile_pixel_col:start_tile_pixel_col + end_tile_pixel[0], :]
+        tile = image[start_tile_pixel_col:start_tile_pixel_col + end_tile_pixel[0],
+               start_tile_pixel_row:start_tile_pixel_row + end_tile_pixel[1], :]
         resized_tile = tf.image.resize(tile, [self.tile_size, self.tile_size])
         resized_tile = tf.cast(resized_tile, dtype=tf.int32)
 
         return resized_tile, label
 
     def _augment_image(self, tile, annot):
-        # tile = tile_annot_pair[0]
-        # annot = tile_annot_pair[1]
-
         flipped = tf.image.random_flip_left_right(tile)
         flipped_twice = tf.image.random_flip_up_down(flipped)
         return flipped_twice, annot
@@ -189,20 +185,22 @@ class TrainDataset:
         river_label = 4
         if tf.reduce_any(y == river_label):
             return river_label
-        most_votes_arg = tf.argmax(count)
-        return y[most_votes_arg]
+        else:
+            most_votes_arg = tf.argmax(count)
+            return y[most_votes_arg]
 
 
 if __name__ == "__main__":
     import matplotlib
 
     matplotlib.use('TkAgg')
-    import matplotlib.pyplot as plt
 
     dataset = TrainDataset('datasets/opssat/raw', num_classes=8, minitile_size=40, batch_size=32)
     for tile_batch, annot_batch in dataset.iterator:
         tile_batch_np = tile_batch.numpy()
-        for i in range(np.shape(tile_batch_np)[0]):
-            plt.imshow(tile_batch_np[i])
-            plt.show()
-            pass
+        assert (np.size(tile_batch_np) == 32 * 200 * 200 * 3)
+        print("It's fine..")
+        # for i in range(np.shape(tile_batch_np)[0]):
+        #     plt.imshow(tile_batch_np[i])
+        #     plt.show()
+        #     pass
