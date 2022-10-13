@@ -12,7 +12,7 @@ input_shape = (200, 200, 3)
 
 @app.command()
 def train(batch_size: int = 32, model_weights: str = None,
-          epochs: int = 1000, steps_per_epoch: int = 100, verbose: int = 1,
+          epochs: int = 1000, steps_per_epoch: int = 100, verbose: int = 2,
           validation_dataset_path: str = 'datasets/opssat/val/',
           test_dataset_path='datasets/opssat/val/', run_on_gpu: bool = True):
     if not run_on_gpu:
@@ -34,7 +34,7 @@ def train(batch_size: int = 32, model_weights: str = None,
 
 @app.command()
 def pretrain(batch_size: int = 32, model_weights: str = None,
-             epochs: int = 1000, steps_per_epoch: int = 100, verbose: int = 1,
+             epochs: int = 1000, steps_per_epoch: int = 100, verbose: int = 2,
              dataset_path: str = 'datasets/AID/',
              validation_split: float = 0.1,
              run_on_gpu: bool = True):
