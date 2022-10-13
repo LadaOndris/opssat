@@ -21,7 +21,7 @@ class AID:
         self.validation_split = validation_split
 
         self.class_weights = self._compute_class_weights()
-        self.train_iterator = self._build_iterator('train')
+        self.train_iterator = self._build_iterator('training')
         self.validation_iterator = self._build_iterator('validation')
 
     def _build_iterator(self, dataset_subset: str):
