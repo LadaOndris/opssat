@@ -21,12 +21,13 @@ class AID:
         self.validation_split = validation_split
 
         self.class_weights = self._compute_class_weights()
-        self.train_iterator, self.validation_iterator = self._build_iterator()
+        self.train_iterator = self._build_iterator('train')
+        self.validation_iterator = self._build_iterator('validation')
 
-    def _build_iterator(self):
+    def _build_iterator(self, dataset_subset: str):
         dataset = tf.keras.utils.image_dataset_from_directory(
             self.dataset_path, batch_size=self.batch_size, seed=42,
-            image_size=self.image_size, validation_split=self.validation_split, subset="both")
+            image_size=self.image_size, validation_split=self.validation_split, subset=dataset_subset)
         return dataset
 
     def _compute_class_weights(self) -> Dict:
