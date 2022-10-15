@@ -35,7 +35,7 @@ class Trainer:
                 activation=None,
                 kernel_initializer=DENSE_KERNEL_INITIALIZER,
                 name="predictions",
-            )(pre_last_layer)
+            )(pre_last_layer.output)
 
             self.model = tf.keras.Model(first_layer, classification_layer)
         else:
