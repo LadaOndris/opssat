@@ -42,6 +42,8 @@ class Trainer:
             self.model = EfficientNetLiteB0(classes=self.num_classes, weights=None, input_shape=self.input_shape,
                                             classifier_activation=None)
             self.model.load_weights(weights_path)
+        self.model.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                           metrics=[keras.metrics.SparseCategoricalAccuracy()])
 
     def train(self, dataset_iterator, class_weights, batch_size: int, epochs: int, steps_per_epoch: int,
               verbose: int, validation_data, validation_steps: int = 0):
