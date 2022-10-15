@@ -13,12 +13,15 @@ input_shape = (200, 200, 3)
 @app.command()
 def train(batch_size: int = 32, model_weights: str = None, pretrain_classes: int = None,
           epochs: int = 1000, steps_per_epoch: int = 100, verbose: int = 2,
-          validation_dataset_path: str = 'datasets/opssat/val/', run_on_gpu: bool = True):
+          validation_dataset_path: str = 'datasets/opssat/val/', run_on_gpu: bool = True,
+          min_minitiles: int = 2, max_minitiles: int = 10, max_minitile_ration: int = 3):
     if not run_on_gpu:
         os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
     trainer = Trainer(input_shape, num_classes=8)
-    dataset = TrainDataset('datasets/opssat/raw', num_classes=8, minitile_size=40, batch_size=batch_size)
+    dataset = TrainDataset('datasets/opssat/raw', num_classes=8, minitile_size=40, batch_size=batch_size,
+                           min_minitiles=min_minitiles, max_minitiles=max_minitiles,
+                           max_minitile_ration=max_minitile_ration)
 
     if model_weights:
         trainer.load_model(model_weights, pretrain_classes=pretrain_classes)
