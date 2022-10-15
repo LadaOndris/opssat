@@ -5,7 +5,7 @@ from tensorflow import keras
 
 import src.logging as logs_utils
 from src.dataset.opssat import get_images_from_path
-from src.efficientnet_lite import EfficientNetLiteB0
+from src.efficientnet_lite import DENSE_KERNEL_INITIALIZER, EfficientNetLiteB0
 
 
 class Trainer:
@@ -22,10 +22,26 @@ class Trainer:
                            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                            metrics=[keras.metrics.SparseCategoricalAccuracy()])
 
-    def load_model(self, weights_path: str):
-        self.model = EfficientNetLiteB0(classes=self.num_classes, weights=None, input_shape=self.input_shape,
-                                        classifier_activation=None)
-        self.model.load_weights(weights_path)
+    def load_model(self, weights_path: str, pretrain_classes: int = None):
+        if pretrain_classes is not None:
+            self.model = EfficientNetLiteB0(classes=pretrain_classes, weights=None, input_shape=self.input_shape,
+                                            classifier_activation=None)
+            self.model.load_weights(weights_path)
+
+            first_layer = self.model.layers[0]
+            pre_last_layer = self.model.layers[-2]
+            classification_layer = tf.keras.layers.Dense(
+                self.num_classes,
+                activation=None,
+                kernel_initializer=DENSE_KERNEL_INITIALIZER,
+                name="predictions",
+            )(pre_last_layer)
+
+            self.model = tf.keras.Model(first_layer, classification_layer)
+        else:
+            self.model = EfficientNetLiteB0(classes=self.num_classes, weights=None, input_shape=self.input_shape,
+                                            classifier_activation=None)
+            self.model.load_weights(weights_path)
 
     def train(self, dataset_iterator, class_weights, batch_size: int, epochs: int, steps_per_epoch: int,
               verbose: int, validation_data, validation_steps: int = 0):

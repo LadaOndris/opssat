@@ -11,7 +11,7 @@ input_shape = (200, 200, 3)
 
 
 @app.command()
-def train(batch_size: int = 32, model_weights: str = None,
+def train(batch_size: int = 32, model_weights: str = None, pretrain_classes: int = None,
           epochs: int = 1000, steps_per_epoch: int = 100, verbose: int = 2,
           validation_dataset_path: str = 'datasets/opssat/val/',
           test_dataset_path='datasets/opssat/val/', run_on_gpu: bool = True):
@@ -22,7 +22,7 @@ def train(batch_size: int = 32, model_weights: str = None,
     dataset = TrainDataset('datasets/opssat/raw', num_classes=8, minitile_size=40, batch_size=batch_size)
 
     if model_weights:
-        trainer.load_model(model_weights)
+        trainer.load_model(model_weights, pretrain_classes=pretrain_classes)
     else:
         trainer.create_model()
 
