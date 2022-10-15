@@ -37,7 +37,7 @@ class Trainer:
                 name="predictions",
             )(pre_last_layer.output)
 
-            self.model = tf.keras.Model(first_layer, classification_layer)
+            self.model = tf.keras.Model(first_layer.output, classification_layer)
         else:
             self.model = EfficientNetLiteB0(classes=self.num_classes, weights=None, input_shape=self.input_shape,
                                             classifier_activation=None)
