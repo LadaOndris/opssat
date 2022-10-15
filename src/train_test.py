@@ -66,11 +66,14 @@ class Trainer:
                                  class_weight=class_weights,
                                  validation_data=validation_data, validation_steps=validation_steps)
 
-    def evaluate(self, test_dataset_path: str):
-        x, y = get_images_from_path(test_dataset_path, self.input_shape)
-        self.evaluate_copen_kappa(x, y)
+    def evaluate(self, dataset_iterator, batch_size: int, verbose: int):
+        self.model.evaluate(dataset_iterator, batch_size=batch_size, verbose=verbose)
 
-    def evaluate_copen_kappa(self, x, y):
+    def evaluate_kappa(self, test_dataset_path: str):
+        x, y = get_images_from_path(test_dataset_path, self.input_shape)
+        self._evaluate_copen_kappa(x, y)
+
+    def _evaluate_copen_kappa(self, x, y):
         predictions = np.zeros(len(y), dtype=np.int8)
 
         # inference loop

@@ -7,18 +7,13 @@ import tensorflow as tf
 from scipy.interpolate import NearestNDInterpolator
 
 
-def get_images_from_path(dataset_path, input_shape):
+def get_eval_dataset(dataset_path, input_shape, batch_size):
     """ Get images from path and normalize them applying channel-level normalization. """
 
     # loading all images in one large batch
-    tf_eval_data = tf.keras.utils.image_dataset_from_directory(dataset_path, image_size=input_shape[:2], shuffle=False,
-                                                               batch_size=100000)
-
-    # extract images and targets
-    for tf_eval_images, tf_eval_targets in tf_eval_data:
-        break
-
-    return tf.convert_to_tensor(tf_eval_images), tf_eval_targets
+    dataset = tf.keras.utils.image_dataset_from_directory(dataset_path, image_size=input_shape[:2], shuffle=False,
+                                                          batch_size=batch_size)
+    return dataset
 
 
 class TrainDataset:

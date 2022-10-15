@@ -3,7 +3,7 @@ import os
 import typer
 
 from src.dataset.aid import AID
-from src.dataset.opssat import get_images_from_path, TrainDataset
+from src.dataset.opssat import get_eval_dataset, TrainDataset
 from src.train_test import Trainer
 
 app = typer.Typer()
@@ -26,10 +26,29 @@ def train(batch_size: int = 32, model_weights: str = None, pretrain_classes: int
     else:
         trainer.create_model()
 
-    validation_data = get_images_from_path(validation_dataset_path, input_shape)
+    validation_dataset = get_eval_dataset(validation_dataset_path, input_shape, batch_size=batch_size)
+    validation_steps = validation_dataset.cardinality().numpy()
+
     trainer.train(dataset.iterator, dataset.class_weights, batch_size=batch_size, epochs=epochs,
-                  steps_per_epoch=steps_per_epoch, verbose=verbose, validation_data=validation_data)
-    trainer.evaluate(test_dataset_path=test_dataset_path)
+                  steps_per_epoch=steps_per_epoch, verbose=verbose, validation_data=validation_dataset,
+                  validation_steps=validation_steps)
+
+
+@app.command()
+def eval(batch_size: int = 32, model_weights: str = None, verbose: int = 2, run_on_gpu: bool = True,
+         validation_dataset_path: str = 'datasets/opssat/val/'):
+    if not run_on_gpu:
+        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+    trainer = Trainer(input_shape, num_classes=8)
+
+    if model_weights:
+        trainer.load_model(model_weights)
+    else:
+        trainer.create_model()
+
+    validation_dataset = get_eval_dataset(validation_dataset_path, input_shape, batch_size=batch_size)
+    trainer.evaluate(dataset_iterator=validation_dataset, batch_size=batch_size, verbose=verbose)
 
 
 @app.command()
