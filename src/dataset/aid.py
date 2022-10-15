@@ -7,9 +7,8 @@ from pathlib import Path
 from typing import Dict, Tuple
 
 import tensorflow as tf
-import tensorflow.python.keras.layers as layers
-from tensorflow.keras import Sequential
 
+from src.dataset.augmentations import get_augmentation_pipeline
 from src.dataset.balancing import compute_class_weight
 
 
@@ -27,7 +26,7 @@ class AID:
         self.validation_iterator, self.validation_steps = self._build_iterator('validation', augment=False)
 
     def _build_iterator(self, dataset_subset: str, augment: bool):
-        augmentation_pipe = self._get_augmentation_pipeline()
+        augmentation_pipe = get_augmentation_pipeline()
 
         dataset = tf.keras.utils.image_dataset_from_directory(
             self.dataset_path, batch_size=self.batch_size, seed=42,
@@ -39,20 +38,6 @@ class AID:
                                   num_parallel_calls=tf.data.AUTOTUNE)
         dataset = dataset.prefetch(tf.data.AUTOTUNE)
         return dataset, dataset_batches
-
-    def _get_augmentation_pipeline(self):
-        augmentation_pipeline = Sequential([
-            layers.RandomContrast(0.2),
-            layers.RandomFlip("horizontal_and_vertical"),
-            layers.RandomZoom(
-                height_factor=(-0.2, 0.2),
-                width_factor=(-0.2, 0.2)),
-            layers.RandomRotation(1.0),  # rotate randomly in the 360 degree range
-            layers.RandomTranslation(
-                height_factor=(-0.2, 0.2),
-                width_factor=(-0.2, 0.2)),
-        ])
-        return augmentation_pipeline
 
     def _compute_class_weights(self) -> Dict:
         image_counts = {}

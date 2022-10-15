@@ -6,6 +6,8 @@ import numpy as np
 import tensorflow as tf
 from scipy.interpolate import NearestNDInterpolator
 
+from src.dataset.augmentations import get_augmentation_pipeline
+
 
 def get_eval_dataset(dataset_path, input_shape, batch_size):
     """ Get images from path and normalize them applying channel-level normalization. """
@@ -108,6 +110,8 @@ class TrainDataset:
         """
         Prepares tf.data.Dataset.
         """
+        augmentation_pipe = get_augmentation_pipeline()
+
         dataset_annotations = tf.data.Dataset.from_tensor_slices(self.image_annotations)
         dataset_image_paths = tf.data.Dataset.from_tensor_slices(self.image_file_paths)
         dataset_images = dataset_image_paths.map(self._read_image)
@@ -119,6 +123,8 @@ class TrainDataset:
         dataset = dataset.map(self._prepare_sample,
                               num_parallel_calls=tf.data.AUTOTUNE)
         dataset = dataset.batch(self.batch_size)
+        dataset = dataset.map(lambda x, y: (augmentation_pipe(x), y),
+                              num_parallel_calls=tf.data.AUTOTUNE)
         # dataset = dataset.map(self._augment_image)
         dataset = dataset.prefetch(tf.data.AUTOTUNE)
         return dataset
