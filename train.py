@@ -34,7 +34,7 @@ def train(batch_size: int = 32, model_weights: str = None,
 
 @app.command()
 def pretrain(batch_size: int = 32, model_weights: str = None,
-             epochs: int = 1000, steps_per_epoch: int = 100, verbose: int = 2,
+             epochs: int = 1000, verbose: int = 2,
              dataset_path: str = 'datasets/AID/',
              validation_split: float = 0.1,
              run_on_gpu: bool = True):
@@ -50,7 +50,8 @@ def pretrain(batch_size: int = 32, model_weights: str = None,
     else:
         trainer.create_model()
     trainer.train(dataset.train_iterator, dataset.class_weights, batch_size=batch_size, epochs=epochs,
-                  steps_per_epoch=steps_per_epoch, verbose=verbose, validation_data=dataset.validation_iterator)
+                  steps_per_epoch=dataset.train_steps, verbose=verbose, validation_data=dataset.validation_iterator,
+                  validation_steps=dataset.validation_steps)
 
 
 if __name__ == "__main__":

@@ -28,7 +28,7 @@ class Trainer:
         self.model.load_weights(weights_path)
 
     def train(self, dataset_iterator, class_weights, batch_size: int, epochs: int, steps_per_epoch: int,
-              verbose: int, validation_data):
+              verbose: int, validation_data, validation_steps: int = 0):
         log_dir = logs_utils.make_log_dir('logs')
         checkpoint_path = logs_utils.compose_ckpt_path(log_dir)
         monitor_loss = 'val_loss'
@@ -44,7 +44,7 @@ class Trainer:
         history = self.model.fit(dataset_iterator, epochs=epochs, steps_per_epoch=steps_per_epoch,
                                  verbose=verbose, batch_size=batch_size, callbacks=callbacks,
                                  class_weight=class_weights,
-                                 validation_data=validation_data)
+                                 validation_data=validation_data, validation_steps=validation_steps)
 
     def evaluate(self, test_dataset_path: str):
         x, y = get_images_from_path(test_dataset_path, self.input_shape)
