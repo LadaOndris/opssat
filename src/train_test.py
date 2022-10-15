@@ -32,12 +32,12 @@ class Trainer:
         log_dir = logs_utils.make_log_dir('logs')
         checkpoint_path = logs_utils.compose_ckpt_path(log_dir)
         monitor_loss = 'val_loss'
-        plateau_patience = 20
+        plateau_patience = 10
         callbacks = [
             tf.keras.callbacks.TensorBoard(log_dir=log_dir, update_freq='epoch'),
             tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, monitor=monitor_loss, save_weights_only=True,
                                                save_best_only=True),
-            tf.keras.callbacks.EarlyStopping(monitor=monitor_loss, patience=plateau_patience * 2 + 1,
+            tf.keras.callbacks.EarlyStopping(monitor=monitor_loss, patience=plateau_patience * 2 + 5,
                                              restore_best_weights=True),
             tf.keras.callbacks.TerminateOnNaN(),
             tf.keras.callbacks.ReduceLROnPlateau(patience=plateau_patience, factor=0.7)
