@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+from keras import regularizers
 from sklearn.metrics import cohen_kappa_score
 from tensorflow import keras
 
@@ -34,6 +35,8 @@ class Trainer:
                 activation=None,
                 kernel_initializer=DENSE_KERNEL_INITIALIZER,
                 name="predictions",
+                kernel_regularizer=regularizers.l2(0.06),
+                activity_regularizer=regularizers.l1(0.06)
             )(pre_last_layer.output)
 
             self.model = tf.keras.Model(first_layer.output, classification_layer)
