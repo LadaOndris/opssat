@@ -113,37 +113,43 @@ class TrainDataset:
         """
         Prepares tf.data.Dataset.
         """
-        dataset = tf.data.Dataset.from_tensors(self.image_file_paths)
+        dataset_annotations = tf.data.Dataset.from_tensor_slices(self.image_annotations)
+        dataset_image_paths = tf.data.Dataset.from_tensor_slices(self.image_file_paths)
+        dataset_images = dataset_image_paths.map(self._read_image)
+        dataset = tf.data.Dataset.zip((dataset_images, dataset_annotations))
+        # dataset = dataset.batch(len(self.image_file_paths))
+        dataset = dataset.cache()
         dataset = dataset.repeat()
-        dataset = dataset.map(self._prepare_sample)
-        # dataset = dataset.map(self._augment_image)
+        # shuffle
+        dataset = dataset.map(self._prepare_sample,
+                              num_parallel_calls=tf.data.AUTOTUNE)
         dataset = dataset.batch(self.batch_size)
+        # dataset = dataset.map(self._augment_image)
+        dataset = dataset.prefetch(tf.data.AUTOTUNE)
         return dataset
 
-    def _prepare_sample(self, img_file_paths):
-        # Select random image
-        num_files = tf.shape(img_file_paths)[0]
-        selected_image_idx = tf.random.uniform(shape=[1], maxval=num_files, dtype=tf.int32)[0]
-        selected_image_annotations = self.image_annotations[selected_image_idx]
+    def _read_image(self, img_file_path):
+        image_raw = tf.io.read_file(img_file_path)
+        image = tf.io.decode_png(image_raw, channels=3)
+        return image[:1942, :, :]  # make all images the same size
 
+    def _prepare_sample(self, image, annot):
         # Select random tile size
-        tile_size_idx = tf.random.uniform(shape=[1], maxval=tf.shape(self.allowed_tile_sizes)[0], dtype=tf.int32)[0]
-        num_minitiles = self.allowed_tile_sizes[tile_size_idx]
+        tile_size_indices = tf.random.uniform(shape=[1], maxval=tf.shape(self.allowed_tile_sizes)[0],
+                                              dtype=tf.int32)[0]
+        num_minitiles = tf.gather(self.allowed_tile_sizes, tile_size_indices, axis=0)
 
         # Select random tile 200x200 pixels
-        num_rows = tf.shape(selected_image_annotations)[0]
-        num_cols = tf.shape(selected_image_annotations)[1]
+        num_rows = tf.shape(annot)[0]
+        num_cols = tf.shape(annot)[1]
         random_row = tf.random.uniform(shape=[1], maxval=num_rows - num_minitiles[1], dtype=tf.int32)[0]
         random_col = tf.random.uniform(shape=[1], maxval=num_cols - num_minitiles[0], dtype=tf.int32)[0]
 
-        subimage_annotations = selected_image_annotations[random_row:random_row + num_minitiles[1],
+        subimage_annotations = annot[random_row:random_row + num_minitiles[1],
                                random_col:random_col + num_minitiles[0]]
+
         # Create label of the majority of votes
         label = self._annotations_to_label(subimage_annotations)
-
-        # Read image
-        image_raw = tf.io.read_file(img_file_paths[selected_image_idx])
-        image = tf.io.decode_png(image_raw, channels=3)
 
         # Extract tile
         start_tile_pixel_row = random_row * self.minitile_size
@@ -152,6 +158,7 @@ class TrainDataset:
 
         tile = image[start_tile_pixel_col:start_tile_pixel_col + end_tile_pixel[0],
                start_tile_pixel_row:start_tile_pixel_row + end_tile_pixel[1], :]
+
         resized_tile = tf.image.resize(tile, [self.tile_size, self.tile_size])
         resized_tile = tf.cast(resized_tile, dtype=tf.int32)
 
@@ -196,6 +203,8 @@ if __name__ == "__main__":
     matplotlib.use('TkAgg')
 
     dataset = TrainDataset('datasets/opssat/raw', num_classes=8, minitile_size=40, batch_size=32)
+    # for elem in dataset.iterator:
+    #    pass
     for tile_batch, annot_batch in dataset.iterator:
         tile_batch_np = tile_batch.numpy()
         assert (np.size(tile_batch_np) == 32 * 200 * 200 * 3)
